@@ -126,7 +126,7 @@
     if (hint) {
       hint.textContent = selectedWho
         ? cfg.agents[selectedWho].name + "을(를) 옮길 방을 누르세요"
-        : "아바타를 누르면 선택 · 방을 누르면 이동";
+        : "방을 누르면 내 비서 이동 · 아바타 선택 시 지정 이동";
       hint.classList.toggle("active", !!selectedWho);
     }
   }
@@ -436,8 +436,8 @@
   function wire() {
     $$(".room").forEach(function (roomEl) {
       roomEl.addEventListener("click", function () {
-        if (!selectedWho) { toast("먼저 아바타를 눌러 주세요."); return; }
-        moveAgent(selectedWho, roomEl.dataset.room);
+        var target = selectedWho || (store.identity === "hyeonju" ? "hyeonju" : "ddak");
+        moveAgent(target, roomEl.dataset.room);
       });
     });
 
