@@ -397,9 +397,10 @@
   };
 
   /* ---------- 시작 ---------- */
-  OfficeStore.prototype.catchUp = function () {
+  OfficeStore.prototype.catchUp = function (sinceOverride) {
     var self = this;
-    return fetch(BASE + "/" + encodeURIComponent(TOPIC) + "/json?poll=1&since=all", { cache: "no-store" })
+    var since = sinceOverride || "all";
+    return fetch(BASE + "/" + encodeURIComponent(TOPIC) + "/json?poll=1&since=" + encodeURIComponent(since), { cache: "no-store" })
       .then(function (res) {
         if (!res.ok) throw new Error("HTTP " + res.status);
         return res.text();
@@ -419,15 +420,17 @@
 
   OfficeStore.prototype.connect = function () {
     var self = this;
-    if (typeof EventSource === "undefined") { this.setConn("polling"); return; }
+    if (typeof EventSource === "undefined") { this.startPolling(); return; }
     var since = this.lastTime ? String(this.lastTime) : "all";
     var url = BASE + "/" + encodeURIComponent(TOPIC) + "/sse?since=" + since;
     var es;
-    try { es = new EventSource(url); } catch (e) { this.setConn("offline"); return; }
+    try { es = new EventSource(url); } catch (e) { this.startPolling(); return; }
     this.sse = es;
 
     es.onopen = function () {
       self.reconnectDelay = 1000;
+      self.failures = 0;
+      self.stopPolling();
       self.setConn("live");
       self.maybeSync();
     };
@@ -436,13 +439,34 @@
       if (m && m.event === "message" && self.ingest(m)) self.emit("data");
     };
     es.onerror = function () {
-      self.setConn(navigator.onLine === false ? "offline" : "reconnecting");
       try { es.close(); } catch (e) { }
       if (self.sse === es) self.sse = null;
+      self.failures = (self.failures || 0) + 1;
+      if (self.failures >= 3) {
+        // 실시간 연결이 계속 막힐 때(모바일망·프록시)는 주기 확인으로 전환
+        self.startPolling();
+        setTimeout(function () { self.connect(); }, 60000);
+        return;
+      }
+      self.setConn(navigator.onLine === false ? "offline" : "reconnecting");
       var d = self.reconnectDelay;
       self.reconnectDelay = Math.min(self.reconnectDelay * 2, 20000);
       setTimeout(function () { self.connect(); }, d);
     };
+  };
+
+  OfficeStore.prototype.startPolling = function () {
+    var self = this;
+    this.setConn("polling");
+    if (this.pollTimer) return;
+    this.pollTimer = setInterval(function () {
+      var since = self.lastTime ? String(Math.max(0, self.lastTime - 2)) : "all";
+      self.catchUp(since).then(function () { self.emit("data"); });
+    }, 15000);
+  };
+
+  OfficeStore.prototype.stopPolling = function () {
+    if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
   };
 
   OfficeStore.prototype.start = function () {
@@ -462,6 +486,7 @@
 
   OfficeStore.prototype.reconnect = function () {
     if (this.sse) { try { this.sse.close(); } catch (e) { } this.sse = null; }
+    this.failures = 0;
     this.setConn("connecting");
     var self = this;
     this.catchUp().then(function () { self.emit("data"); self.connect(); });
