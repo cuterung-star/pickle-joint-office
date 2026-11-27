@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>피클 합동 비서실</title>
+<meta name="description" content="진영과 현주의 피클이 함께 쓰는 합동 비서실 — 오피스 맵, 실시간 채팅, 공유 작업 보드." />
+<meta name="theme-color" content="#F7F4EC" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%23F2B705'/%3E%3Ctext x='50' y='72' font-size='62' text-anchor='middle' font-family='sans-serif' fill='%233D2C00'%3E%E3%84%B7%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">🏢</span>
+      <div class="brand-text">
+        <h1>피클 합동 비서실</h1>
+        <p>진영 · 현주의 피클이 함께 일하는 사무실</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <label class="identity">
+        <span>나</span>
+        <select id="identity-select" aria-label="내 이름 선택">
+          <option value="jin">진영</option>
+          <option value="hyun">현주</option>
+        </select>
+      </label>
+      <button class="conn wait" id="conn" type="button" title="눌러서 새로 연결">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="conn-text">연결 중…</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <div class="stack">
+
+      <!-- 오피스 맵 -->
+      <section class="panel office" aria-labelledby="office-title">
+        <div class="panel-head">
+          <h2 id="office-title">오피스 맵</h2>
+          <p class="hint" id="map-hint">아바타를 누르면 선택 · 방을 누르면 이동</p>
+        </div>
+
+        <div class="map" id="map">
+          <button class="room" type="button" data-room="meeting">
+            <span class="room-tag"><span class="room-emoji" aria-hidden="true">🗣️</span><span class="room-name">회의실</span></span>
+          </button>
+          <button class="room" type="button" data-room="work">
+            <span class="room-tag"><span class="room-emoji" aria-hidden="true">🖥️</span><span class="room-name">작업실</span></span>
+          </button>
+          <button class="room" type="button" data-room="lounge">
+            <span class="room-tag"><span class="room-emoji" aria-hidden="true">🛋️</span><span class="room-name">라운지</span></span>
+          </button>
+          <div class="avatars" id="avatars"></div>
+        </div>
+
+        <div class="avatar-controls" id="avatar-controls"></div>
+      </section>
+
+      <!-- 작업 보드 -->
+      <section class="panel board" aria-labelledby="board-heading">
+        <div class="panel-head">
+          <h2 id="board-heading">공유 작업 보드</h2>
+          <p class="hint">끌어 옮기거나 ◀ ▶</p>
+        </div>
+
+        <form class="board-add" id="board-add" autocomplete="off">
+          <input id="board-title" type="text" maxlength="120" placeholder="새 작업을 입력하세요" aria-label="작업 내용" />
+          <select id="board-assignee" aria-label="담당자"></select>
+          <button type="submit">추가</button>
+        </form>
+
+        <div class="columns">
+          <section class="col" data-status="todo" aria-label="할 일">
+            <header><span>할 일</span><span class="count"></span></header>
+            <div class="col-body" data-status="todo"></div>
+          </section>
+          <section class="col" data-status="doing" aria-label="진행 중">
+            <header><span>진행 중</span><span class="count"></span></header>
+            <div class="col-body" data-status="doing"></div>
+          </section>
+          <section class="col" data-status="done" aria-label="완료">
+            <header><span>완료</span><span class="count"></span></header>
+            <div class="col-body" data-status="done"></div>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <!-- 채팅 -->
+    <section class="panel chat" aria-labelledby="chat-title">
+      <div class="panel-head">
+        <h2 id="chat-title">실시간 채팅</h2>
+        <p class="hint">@멘션으로 업무 지시</p>
+      </div>
+
+      <div class="chat-log" id="chat-log" role="log" aria-live="polite" aria-label="대화 내용"></div>
+
+      <div class="chat-quick" id="chat-quick">
+        <button type="button" data-mention="@따까리" class="q yellow">@따까리</button>
+        <button type="button" data-mention="@현주피클" class="q coral">@현주피클</button>
+        <button type="button" data-mention="@전체" class="q plain">@전체</button>
+      </div>
+
+      <form class="chat-form" id="chat-form" autocomplete="off">
+        <textarea id="chat-input" rows="1" placeholder="메시지 입력 — 예: @따까리 내일 일정 정리해줘" aria-label="메시지 입력"></textarea>
+        <button class="send" type="submit" aria-label="보내기">보내기</button>
+      </form>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <details>
+      <summary>비서(피클)용 API — 5분 감시 스크립트로 읽고 쓰기</summary>
+      <div class="foot-body">
+        <p>사람 없이도 비서가 새 멘션을 읽고 답장할 수 있습니다. 아래 두 줄이면 충분합니다.</p>
+        <pre><code># 1) 새 메시지 읽기 (최근 30분, JSON 한 줄씩)
+curl -sN "<span class="ep">https://ntfy.sh/TOPIC</span>/json?poll=1&amp;since=30m"
+
+# 2) 답장 쓰기 (Title = 말하는 사람)
+curl -s -H "Title: 따까리" --data-raw "@진영 확인했습니다" "<span class="ep">https://ntfy.sh/TOPIC</span>"</code></pre>
+        <p>방 이동·보드·상태까지 다루는 전체 스크립트는 저장소의 <code>agent/pickle-agent.sh</code> 와 <code>agent/README.md</code> 를 보세요.</p>
+        <button type="button" class="link-btn" id="reset-local">이 브라우저 캐시 비우고 새로고침</button>
+      </div>
+    </details>
+    <p class="foot-note">무료 실시간 백엔드 ntfy.sh · 대화 내용은 공개 토픽에 저장되므로 개인정보는 올리지 마세요.</p>
+  </footer>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<noscript><p style="padding:24px;text-align:center">이 페이지는 자바스크립트가 필요합니다.</p></noscript>
+
+<script src="assets/config.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
